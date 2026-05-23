@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 01 · JD Screener — Job Search OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f3ee; --bg2: #eceae3; --bg3: #fff;
+  --border: rgba(0,0,0,0.08); --border-s: rgba(0,0,0,0.15);
+  --text: #1a1916; --mid: #5a5850; --dim: #9a9890;
+  --accent: #534ab7;
+  --go: #0f6e56; --go-bg: #e1f5ee; --go-border: rgba(15,110,86,.2);
+  --warn: #854f0b; --warn-bg: #faeeda;
+  --no: #a32d2d; --no-bg: #fcebeb;
+}
+html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; }
+
+.os-nav { display:flex; align-items:center; padding:0 32px; border-bottom:1px solid var(--border); background:var(--bg); height:48px; position:sticky; top:0; z-index:100; }
+.nav-logo { font-family:'Instrument Serif',serif; font-size:17px; color:var(--text); text-decoration:none; margin-right:32px; flex-shrink:0; }
+.nav-logo em { font-style:italic; color:var(--accent); }
+.nav-links { display:flex; gap:2px; flex:1; }
+.nav-link { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); text-decoration:none; padding:0 14px; height:48px; display:flex; align-items:center; border-bottom:2px solid transparent; transition:color .15s,border-color .15s; white-space:nowrap; }
+.nav-link:hover { color:var(--mid); }
+.nav-link.active { color:var(--accent); border-bottom-color:var(--accent); }
+.nav-context { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:.06em; padding:4px 10px; background:var(--bg2); border-radius:6px; display:none; }
+.nav-context.show { display:block; }
+
+/* PROFILE WARNING */
+.profile-warn {
+  background: var(--warn-bg); border-bottom: 1px solid rgba(133,79,11,.2);
+  padding: 10px 32px; font-size: 12px; color: var(--warn); display: none; align-items: center; gap: 10px;
+}
+.profile-warn a { color: var(--warn); font-weight: 600; }
+.profile-warn.show { display: flex; }
+
+/* HEADER */
+.header {
+  padding: 24px 32px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 5px; }
+.title { font-family: 'Instrument Serif', serif; font-size: 32px; line-height: 1; letter-spacing: -.01em; }
+.title em { font-style: italic; color: var(--accent); }
+.sub { font-size: 13px; color: var(--mid); margin-top: 4px; font-weight: 300; }
+.pill { display: flex; align-items: center; gap: 7px; background: var(--bg2); border: 1px solid var(--border-s); border-radius: 8px; padding: 9px 13px; font-size: 12px; color: var(--mid); }
+.pill strong { color: var(--text); font-weight: 600; }
+.gdot { width: 7px; height: 7px; border-radius: 50%; background: var(--go); flex-shrink: 0; }
+.rdot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); flex-shrink: 0; }
+
+/* LAYOUT */
+.layout { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 140px); }
+
+/* LEFT */
+.left { padding: 24px 28px; border-right: 1px solid var(--border); }
+.lbl { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin-bottom: 9px; }
+textarea {
+  width: 100%; height: 300px;
+  background: var(--bg3); border: 1px solid var(--border-s); border-radius: 10px;
+  padding: 14px; font-family: 'Outfit', sans-serif; font-size: 13px; font-weight: 300;
+  color: var(--text); resize: vertical; line-height: 1.7; outline: none; transition: border-color .2s;
+}
+textarea:focus { border-color: var(--accent); }
+textarea::placeholder { color: var(--dim); }
+.abtn {
+  margin-top: 12px; width: 100%; padding: 14px;
+  background: var(--text); color: #f5f3ee; border: none; border-radius: 10px;
+  font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity .2s; letter-spacing: .02em;
+}
+.abtn:hover { opacity: .85; }
+.abtn:disabled { opacity: .38; cursor: not-allowed; }
+.hint { margin-top: 8px; font-size: 11px; color: var(--dim); text-align: center; }
+.elbl { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 20px 0 9px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11px; padding: 5px 11px; border: 1px solid var(--border-s); border-radius: 16px; color: var(--mid); cursor: pointer; background: var(--bg3); transition: border-color .15s, color .15s; font-family: 'Outfit', sans-serif; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* RIGHT */
+.right { padding: 24px 28px; }
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 340px; text-align: center; gap: 12px; }
+.empty-arr { font-size: 30px; opacity: .1; font-family: monospace; }
+.empty-t { font-size: 13px; color: var(--dim); max-width: 230px; line-height: 1.6; font-weight: 300; }
+.spin-wrap { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 340px; gap: 14px; text-align: center; }
+.spinner { width: 30px; height: 30px; border: 2px solid var(--border-s); border-top-color: var(--accent); border-radius: 50%; animation: spin .75s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-t { font-size: 13px; color: var(--mid); }
+.spin-s { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--dim); line-height: 1.9; }
+.err { display: none; background: var(--no-bg); border: 1px solid rgba(163,45,45,.2); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--no); line-height: 1.6; margin-bottom: 12px; }
+.res { display: none; }
+
+/* RESULT */
+.hero { border-radius: 12px; padding: 20px; margin-bottom: 14px; display: flex; align-items: center; gap: 16px; border: 1px solid transparent; }
+.hero.go   { background: var(--go-bg);   border-color: var(--go-border); }
+.hero.warn { background: var(--warn-bg); border-color: rgba(133,79,11,.2); }
+.hero.bad  { background: var(--no-bg);   border-color: rgba(163,45,45,.2); }
+.ring { width: 70px; height: 70px; border-radius: 50%; border: 2px solid currentColor; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; }
+.hero.go   .ring { color: var(--go); }
+.hero.warn .ring { color: var(--warn); }
+.hero.bad  .ring { color: var(--no); }
+.snum { font-family: 'Instrument Serif', serif; font-size: 28px; line-height: 1; }
+.sden { font-family: 'IBM Plex Mono', monospace; font-size: 9px; opacity: .5; }
+.verdict { font-family: 'Instrument Serif', serif; font-size: 19px; margin-bottom: 3px; }
+.hero.go   .verdict { color: var(--go); }
+.hero.warn .verdict { color: var(--warn); }
+.hero.bad  .verdict { color: var(--no); }
+.reason { font-size: 12px; color: var(--mid); line-height: 1.5; font-weight: 300; }
+.slbl { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); margin: 12px 0 7px; display: flex; align-items: center; gap: 8px; }
+.slbl::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.card { background: var(--bg3); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; font-size: 13px; color: var(--mid); line-height: 1.7; font-weight: 300; }
+.items { display: flex; flex-direction: column; gap: 6px; }
+.item { display: flex; gap: 8px; background: var(--bg3); border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--mid); font-weight: 300; }
+.item.m { border-left: 3px solid var(--go); }
+.item.g { border-left: 3px solid var(--no); }
+.ico { font-size: 10px; flex-shrink: 0; margin-top: 2px; }
+.m .ico { color: var(--go); }
+.g .ico { color: var(--no); }
+.acts { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.btn { flex: 1; padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border-s); background: var(--bg3); font-family: 'Outfit', sans-serif; font-size: 12px; font-weight: 600; color: var(--mid); cursor: pointer; text-align: center; transition: background .15s; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.btn:hover { background: var(--bg2); }
+.btn.p { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn.p:hover { opacity: .85; }
+.btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.accent:hover { opacity: .88; }
+
+@media (max-width: 700px) {
+  .layout { grid-template-columns: 1fr; }
+  .left { border-right: none; border-bottom: 1px solid var(--border); }
+  .header, .left, .right { padding: 16px 18px; }
+  .title { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="os-nav">
+  <a href="JobSearchOS-Setup.html" class="nav-logo">Job Search <em>OS</em></a>
+  <div class="nav-links">
+    <a href="JobSearchOS-Setup.html" class="nav-link" data-page="setup">Setup</a>
+    <a href="Agent1-JD-Screener.html" class="nav-link" data-page="agent1">01 · JD Screener</a>
+    <a href="Agent4A-CV-Tailorer.html" class="nav-link" data-page="agent4a">02 · CV Tailor</a>
+    <a href="Agent6-History.html" class="nav-link" data-page="agent6">03 · Tracker</a>
+  </div>
+  <div class="nav-context" id="navContext"></div>
+</nav>
+
+<div class="profile-warn" id="profileWarn">
+  <span>⚠ No profile found.</span>
+  <a href="JobSearchOS-Setup.html">Go to Setup →</a>
+  <span>to add your master CV and API key before analysing.</span>
+</div>
+
+<div class="header">
+  <div>
+    <div class="tag">Job Search OS · Step 01 of 05</div>
+    <div class="title">JD <em>Screener</em></div>
+    <div class="sub">Paste any job description. Get a fit score, gap analysis, and go/no-go in seconds.</div>
+  </div>
+  <div class="pill" id="profilePill">
+    <div class="rdot" id="pillDot"></div>
+    <span id="pillText">Loading profile…</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="left">
+    <div class="lbl">Paste job description</div>
+    <textarea id="jd" placeholder="Paste the full job description here — title, responsibilities, requirements, everything. The more detail, the sharper the analysis."></textarea>
+    <button class="abtn" id="btn" onclick="run()">Analyse this role</button>
+    <div class="hint" id="hintText">Scoring against your master profile · Powered by Claude</div>
+  </div>
+
+  <div class="right">
+    <div class="empty" id="empty">
+      <div class="empty-arr">→</div>
+      <div class="empty-t">Paste a JD and click Analyse. You'll get a fit score, matched strengths, gaps, and a clear go/no-go recommendation.</div>
+    </div>
+    <div class="spin-wrap" id="spin">
+      <div class="spinner"></div>
+      <div class="spin-t">Analysing role against your profile…</div>
+      <div class="spin-s">Comparing requirements<br>Scoring fit 1–10<br>Identifying gaps<br>Checking red flags</div>
+    </div>
+    <div class="err" id="err"></div>
+    <div class="res" id="res"></div>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = {
+  vp: `VP of Operations – TechScale (Series B, Dubai)\n\nWe are a fast-growing B2B SaaS company ($45M raised) scaling from 150 to 500 employees across MENA and Europe. Report directly to the CEO.\n\nResponsibilities:\n- Design and implement scalable operational processes across all business units\n- Lead a team of 12 across ops, customer success, and support\n- Own our KPI framework and build dashboards for real-time visibility\n- Identify automation opportunities and drive AI-powered workflow improvements\n- Manage relationships with 20+ vendors and service providers\n- Partner with product and engineering to improve internal tooling\n- Run weekly operational reviews with the leadership team\n\nRequirements:\n- 10+ years of operations experience in high-growth tech or marketplace\n- Proven experience scaling ops from startup to scale-up\n- Strong track record building and leading teams\n- Experience with monday.com, Slack, Salesforce\n- Hands-on, comfortable in both strategy and execution\n- MBA preferred. Based in Dubai.`,
+
+  ai: `Head of AI Operations – Frontier Logistics (London/Dubai hybrid)\n\nNext-generation logistics platform using AI across emerging markets. First Head of AI Ops, reporting to COO. 200+ partner carriers across 15 countries.\n\nResponsibilities:\n- Identify manual processes across the operation for AI/automation\n- Partner with AI/ML team to deploy models into live workflows\n- Build and manage team of 6 operations analysts and automation specialists\n- Own our operational data stack — dashboards, KPIs, reporting\n- Drive tool adoption across a global distributed workforce\n- Manage vendor and partner ecosystem\n\nRequirements:\n- Strong operations background in logistics or marketplace\n- Hands-on experience implementing AI tools operationally\n- Comfortable with automation platforms and API integrations\n- Experience managing cross-functional teams and external partners\n- 8+ years experience, international market exposure preferred`,
+
+  coo: `Chief Operating Officer – Nomad (Series A, remote-first)\n\nBuilding the infrastructure for the future of work — connecting companies with elite remote talent across 50+ countries. 3x growth in 18 months. COO as operational co-pilot to CEO.\n\nCore responsibilities:\n- Own all operational functions: customer success, operations, compliance, finance ops\n- Build and scale a team from 25 to 80 over 18 months\n- Design the company's operational playbook from scratch\n- Implement our first formal KPI and OKR framework\n- Identify and implement AI tools to automate repetitive operations\n- Manage our global contractor and vendor network\n- Represent operations in board meetings and investor conversations\n\nRequirements:\n- Scaled ops at a startup or scale-up through rapid growth\n- Genuine interest in AI and how it changes operations\n- Comfortable with ambiguity and fast pace\n- International experience (team spans 30+ countries)\n- MBA or equivalent`,
+
+  cs: `Director of Customer Success – Mobility Platform (Dubai)\n\nOn-demand premium mobility platform, 20+ cities across the GCC. Lead our CS function.\n\nWhat you will lead:\n- A team of 35 CS managers, support agents, and operations coordinators\n- Customer onboarding, account management, renewals, and escalation handling\n- Design and ownership of CS playbooks and processes\n- Implementation of CS tooling (Zendesk and Salesforce)\n- Cross-functional collaboration with Product, Ops, and Sales\n- SLA design and enforcement across the team\n\nRequirements:\n- 8+ years in customer success or operations in a marketplace or platform business\n- Strong track record managing large CS teams (30+ people)\n- Data-driven — comfortable building dashboards on CSAT, NPS, churn\n- Experience operating in the GCC or wider MENA region preferred`
+};
+
+function initNav(activePage) {
+  document.querySelectorAll('.nav-link').forEach(l => {
+    if (l.dataset.page === activePage) l.classList.add('active');
+  });
+  const ctx = localStorage.getItem('pakshi_current_company');
+  const role = localStorage.getItem('pakshi_current_role');
+  if (ctx && role) {
+    const el = document.getElementById('navContext');
+    if (el) { el.textContent = ctx + ' · ' + role; el.classList.add('show'); }
+  }
+}
+
+function getKey() { return localStorage.getItem('pakshi_api_key') || ''; }
+
+window.addEventListener('load', () => {
+  initNav('agent1');
+
+  const name   = localStorage.getItem('pakshi_profile_name') || '';
+  const cv     = localStorage.getItem('pakshi_master_cv') || '';
+  const target = localStorage.getItem('pakshi_profile_target') || '';
+  const key    = getKey();
+
+  const dot  = document.getElementById('pillDot');
+  const text = document.getElementById('pillText');
+
+  if (name && cv && key) {
+    dot.className = 'gdot';
+    text.innerHTML = `<strong>${name}</strong>&nbsp;· Profile ready`;
+  } else if (name || cv) {
+    dot.className = 'rdot';
+    text.innerHTML = `<strong>${name || 'Profile'}</strong>&nbsp;· <a href="JobSearchOS-Setup.html" style="color:var(--warn);font-weight:600;">${!key ? 'API key missing' : 'CV incomplete'}</a>`;
+    if (!key || !cv) document.getElementById('profileWarn').classList.add('show');
+  } else {
+    dot.className = 'rdot';
+    text.innerHTML = `<a href="JobSearchOS-Setup.html" style="color:var(--warn);font-weight:600;">Set up your profile first →</a>`;
+    document.getElementById('profileWarn').classList.add('show');
+  }
+
+  if (name) {
+    document.getElementById('hintText').textContent = `Scoring against ${name}'s master profile · Powered by Claude`;
+  }
+
+  show('empty');
+});
+
+function loadEx(k) { document.getElementById('jd').value = EXAMPLES[k]; }
+
+function show(s) {
+  document.getElementById('empty').style.display = s === 'empty' ? 'flex'  : 'none';
+  document.getElementById('spin').style.display  = s === 'spin'  ? 'flex'  : 'none';
+  document.getElementById('err').style.display   = s === 'err'   ? 'block' : 'none';
+  document.getElementById('res').style.display   = s === 'res'   ? 'block' : 'none';
+}
+
+async function run() {
+  const jd  = document.getElementById('jd').value.trim();
+  const key = getKey();
+  const cv  = localStorage.getItem('pakshi_master_cv') || '';
+  const target = localStorage.getItem('pakshi_profile_target') || '';
+  const name   = localStorage.getItem('pakshi_profile_name') || 'the candidate';
+
+  if (!jd)  { document.getElementById('jd').focus(); return; }
+  if (!key) { alert('No API key found. Please go to Setup and save your Anthropic API key first.'); return; }
+  if (!cv)  { alert('No master CV found. Please go to Setup and paste your CV first.'); return; }
+
+  show('spin');
+  const btn = document.getElementById('btn');
+  btn.disabled = true; btn.textContent = 'Analysing…';
+
+  const SYS = `You are Agent 1 of ${name}'s Job Search OS. Analyse job descriptions against the master profile below. Return ONLY valid JSON — no markdown fences, no preamble, no text outside the JSON object.
+
+MASTER PROFILE — ${name.toUpperCase()}
+${target ? `Target: ${target}\n` : ''}
+${cv}
+
+SCORING:
+8–10 = Strong match — apply immediately
+6–7  = Good match — worth applying with some prep
+4–5  = Partial match — significant gaps, apply only if very interested
+1–3  = Poor match — not recommended
+
+Return exactly this JSON:
+{"score":<int 1-10>,"verdict":"<Strong match|Good match|Partial match|Poor match>","company":"<company name extracted from the JD, or Unknown if not stated>","role":"<job title extracted from the JD>","reason":"<2-3 sentences explaining the score, specific to the profile>","role_overview":"<2-3 sentences: what this role actually is and why interesting or not>","matches":["<specific strength from profile meeting a JD requirement, with career evidence>","<another>","<another>","<another>"],"gaps":["<specific gap: what the JD needs that is lacking or has limited evidence for>","<another>","<another>"],"recommendation":"<2-3 sentences: apply or not, what to emphasise, what to prepare, any red flags>"}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1400,
+        system: SYS,
+        messages: [{ role: 'user', content: `Analyse this JD:\n\n${jd}` }]
+      })
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`API error ${resp.status}: ${t.slice(0, 200)}`);
+    }
+
+    const data   = await resp.json();
+    const text   = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+
+    // Save to localStorage for downstream agents
+    localStorage.setItem('pakshi_current_jd',      jd);
+    localStorage.setItem('pakshi_current_company', parsed.company || 'Unknown Company');
+    localStorage.setItem('pakshi_current_role',    parsed.role    || 'Unknown Role');
+    localStorage.setItem('pakshi_current_score',   String(parsed.score || ''));
+
+    // Refresh nav context chip
+    initNav('agent1');
+
+    render(parsed);
+
+  } catch(e) {
+    show('err');
+    document.getElementById('err').innerHTML = `<strong>Analysis failed:</strong> ${e.message}<br><br>Check your API key is correct and you have credits on your Anthropic account.`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyse this role';
+  }
+}
+
+function render(r) {
+  const s   = r.score;
+  const cls = s >= 8 ? 'go' : s >= 6 ? 'warn' : 'bad';
+  const strong = s >= 6;
+
+  let h = `
+    <div class="hero ${cls}">
+      <div class="ring"><div class="snum">${s}</div><div class="sden">/10</div></div>
+      <div>
+        <div class="verdict">${r.verdict}</div>
+        <div class="reason">${r.reason}</div>
+      </div>
+    </div>
+    <div class="slbl">Role overview</div>
+    <div class="card">${r.role_overview}</div>
+    <div class="slbl">Where you match strongly</div>
+    <div class="items">${(r.matches||[]).map(m=>`<div class="item m"><span class="ico">✓</span><span>${m}</span></div>`).join('')}</div>
+    <div class="slbl">Gaps to address</div>
+    <div class="items">${(r.gaps||[]).map(g=>`<div class="item g"><span class="ico">△</span><span>${g}</span></div>`).join('')}</div>
+    <div class="slbl">Recommendation</div>
+    <div class="card">${r.recommendation}</div>
+    <div class="acts">`;
+
+  if (strong) {
+    h += `<a href="Agent4A-CV-Tailorer.html" class="btn accent">Tailor my CV →</a>
+          <button class="btn" onclick="reset()">New JD</button>`;
+  } else {
+    h += `<button class="btn" onclick="reset()">Try another JD</button>`;
+  }
+
+  h += `</div>`;
+
+  document.getElementById('res').innerHTML = h;
+  show('res');
+}
+
+function reset() { document.getElementById('jd').value = ''; show('empty'); }
+</script>
+</body>
+</html>

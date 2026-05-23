@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Step 02 · CV Tailor — Job Search OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f3ee; --bg2: #eceae3; --bg3: #fff;
+  --border: rgba(0,0,0,0.08); --border-s: rgba(0,0,0,0.15);
+  --text: #1a1916; --mid: #5a5850; --dim: #9a9890;
+  --accent: #534ab7;
+  --go: #0f6e56; --go-bg: #e1f5ee; --go-border: rgba(15,110,86,.2);
+  --warn: #854f0b; --warn-bg: #faeeda;
+  --no: #a32d2d; --no-bg: #fcebeb;
+}
+html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; }
+
+/* NAV */
+.os-nav { display:flex; align-items:center; padding:0 32px; border-bottom:1px solid var(--border); background:var(--bg); height:48px; position:sticky; top:0; z-index:100; }
+.nav-logo { font-family:'Instrument Serif',serif; font-size:17px; color:var(--text); text-decoration:none; margin-right:32px; flex-shrink:0; }
+.nav-logo em { font-style:italic; color:var(--accent); }
+.nav-links { display:flex; gap:2px; flex:1; }
+.nav-link { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); text-decoration:none; padding:0 14px; height:48px; display:flex; align-items:center; border-bottom:2px solid transparent; transition:color .15s,border-color .15s; white-space:nowrap; }
+.nav-link:hover { color:var(--mid); }
+.nav-link.active { color:var(--accent); border-bottom-color:var(--accent); }
+.nav-context { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:.06em; padding:4px 10px; background:var(--bg2); border-radius:6px; display:none; }
+.nav-context.show { display:block; }
+
+/* BANNERS */
+.banner { padding:9px 32px; font-size:12px; display:none; align-items:center; gap:10px; }
+.banner.show { display:flex; }
+.banner.warn-banner { background:var(--warn-bg); border-bottom:1px solid rgba(133,79,11,.2); color:var(--warn); }
+.banner.warn-banner a { color:var(--warn); font-weight:600; }
+.banner.info-banner { background:rgba(83,74,183,.07); border-bottom:1px solid rgba(83,74,183,.15); color:var(--accent); }
+.banner-close { margin-left:auto; cursor:pointer; opacity:.6; font-size:14px; }
+
+/* HEADER */
+.header { padding:24px 32px 20px; border-bottom:1px solid var(--border); display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.tag { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin-bottom:5px; }
+.title { font-family:'Instrument Serif',serif; font-size:32px; line-height:1; letter-spacing:-.01em; }
+.title em { font-style:italic; color:var(--accent); }
+.sub { font-size:13px; color:var(--mid); margin-top:4px; font-weight:300; }
+.pill { display:flex; align-items:center; gap:7px; background:var(--bg2); border:1px solid var(--border-s); border-radius:8px; padding:9px 13px; font-size:12px; color:var(--mid); }
+.pill strong { color:var(--text); font-weight:600; }
+.gdot { width:7px; height:7px; border-radius:50%; background:var(--go); flex-shrink:0; }
+.rdot { width:7px; height:7px; border-radius:50%; background:var(--dim); flex-shrink:0; }
+
+/* LAYOUT */
+.layout { display:grid; grid-template-columns:1fr 1.4fr; min-height:calc(100vh - 140px); }
+.left { padding:24px 28px; border-right:1px solid var(--border); }
+.right { padding:24px 28px; overflow-y:auto; }
+
+/* LEFT */
+.lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); margin-bottom:9px; }
+textarea.jd-area { width:100%; height:320px; background:var(--bg3); border:1px solid var(--border-s); border-radius:10px; padding:14px; font-family:'Outfit',sans-serif; font-size:13px; font-weight:300; color:var(--text); resize:vertical; line-height:1.7; outline:none; transition:border-color .2s; }
+textarea.jd-area:focus { border-color:var(--accent); }
+textarea.jd-area::placeholder { color:var(--dim); }
+.abtn { margin-top:12px; width:100%; padding:14px; background:var(--text); color:#f5f3ee; border:none; border-radius:10px; font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:opacity .2s; letter-spacing:.02em; }
+.abtn:hover { opacity:.85; }
+.abtn:disabled { opacity:.38; cursor:not-allowed; }
+.hint { margin-top:8px; font-size:11px; color:var(--dim); text-align:center; }
+.elbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin:20px 0 9px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { font-size:11px; padding:5px 11px; border:1px solid var(--border-s); border-radius:16px; color:var(--mid); cursor:pointer; background:var(--bg3); transition:border-color .15s,color .15s; }
+.chip:hover { border-color:var(--accent); color:var(--accent); }
+
+/* RIGHT STATES */
+.empty { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:340px; text-align:center; gap:12px; }
+.empty-arr { font-size:30px; opacity:.1; font-family:monospace; }
+.empty-t { font-size:13px; color:var(--dim); max-width:240px; line-height:1.6; font-weight:300; }
+.spin-wrap { display:none; flex-direction:column; align-items:center; justify-content:center; height:100%; min-height:340px; gap:14px; text-align:center; }
+.spinner { width:30px; height:30px; border:2px solid var(--border-s); border-top-color:var(--accent); border-radius:50%; animation:spin .75s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.spin-t { font-size:13px; color:var(--mid); }
+.spin-s { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); line-height:1.9; }
+.err-box { display:none; background:var(--no-bg); border:1px solid rgba(163,45,45,.2); border-radius:10px; padding:14px 16px; font-size:13px; color:var(--no); line-height:1.6; }
+.res-wrap { display:none; }
+
+/* RESULT ACTIONS BAR */
+.result-actions { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.rbtn { padding:9px 16px; border-radius:8px; border:1px solid var(--border-s); background:var(--bg3); font-family:'Outfit',sans-serif; font-size:12px; font-weight:600; color:var(--mid); cursor:pointer; text-decoration:none; transition:background .15s; display:inline-flex; align-items:center; gap:5px; }
+.rbtn:hover { background:var(--bg2); }
+.rbtn.primary { background:var(--text); color:#f5f3ee; border-color:var(--text); }
+.rbtn.primary:hover { opacity:.85; }
+.rbtn.accent { background:var(--accent); color:#fff; border-color:var(--accent); }
+.rbtn.accent:hover { opacity:.88; }
+
+/* CV DOCUMENT */
+.cv-doc { background:#fff; border:1px solid var(--border-s); border-radius:10px; padding:32px 36px; font-size:12px; line-height:1.7; color:var(--text); }
+.cv-name { font-family:'Instrument Serif',serif; font-size:26px; letter-spacing:-.01em; margin-bottom:3px; }
+.cv-contact-line { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--mid); margin-bottom:10px; }
+.cv-headline { font-size:12px; color:var(--accent); font-weight:500; border-bottom:1.5px solid var(--border-s); padding-bottom:10px; margin-bottom:16px; }
+.cv-sec { margin-bottom:16px; }
+.cv-sec-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+.cv-sec-title { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); }
+.edit-sec-btn { font-size:10px; font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; padding:2px 8px; border:1px solid var(--border-s); border-radius:4px; background:var(--bg2); color:var(--dim); cursor:pointer; transition:all .15s; user-select:none; }
+.edit-sec-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--bg3); }
+.edit-sec-btn.editing { border-color:var(--accent); color:var(--accent); background:rgba(83,74,183,.07); }
+.cv-content { outline:none; }
+.cv-content[contenteditable="true"] { border:1px dashed rgba(83,74,183,.4); border-radius:6px; padding:8px; background:rgba(83,74,183,.02); }
+.cv-summary { font-size:12px; color:var(--mid); font-weight:300; line-height:1.75; }
+.cv-role { margin-bottom:12px; break-inside: avoid; page-break-inside: avoid; }
+.cv-role:last-child { margin-bottom:0; }
+.cv-role-hdr { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:1px; }
+.cv-role-title { font-size:13px; font-weight:600; color:var(--text); }
+.cv-role-period { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); flex-shrink:0; }
+.cv-role-company { font-size:11px; color:var(--mid); margin-bottom:6px; font-weight:300; }
+.cv-bullets { list-style:disc; padding-left:16px; }
+.cv-bullets li { font-size:12px; color:var(--mid); line-height:1.65; margin-bottom:2px; font-weight:300; }
+.cv-bullets li.changed-bullet { color:var(--text); }
+.cv-skills-grid { display:flex; gap:10px; flex-wrap:wrap; }
+.cv-skill-group { flex:1; min-width:180px; }
+.cv-skill-lbl { font-size:10px; font-family:'IBM Plex Mono',monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin-bottom:5px; }
+.cv-skill-list { font-size:12px; color:var(--mid); font-weight:300; line-height:1.7; }
+.cv-edu-row { display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--mid); font-weight:300; margin-bottom:3px; }
+.cv-edu-deg { color:var(--text); font-weight:500; }
+.cv-edu-yr { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); }
+.ats-note { margin-top:12px; border-top:1px solid var(--border); padding-top:10px; }
+.ats-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.ats-chip { font-size:10px; padding:3px 8px; background:rgba(83,74,183,.07); border:1px solid rgba(83,74,183,.2); border-radius:12px; color:var(--accent); font-family:'IBM Plex Mono',monospace; }
+.ats-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-bottom:5px; }
+
+/* COVER LETTER */
+.cl-wrap { margin-top:24px; border-top:2px solid var(--border); padding-top:20px; display:none; }
+.cl-spin { display:none; padding:20px 0; text-align:center; }
+.cl-subject-input { width:100%; background:var(--bg2); border:1px solid var(--border-s); border-radius:7px; padding:9px 12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--mid); outline:none; margin-bottom:8px; transition:border-color .2s; }
+.cl-subject-input:focus { border-color:var(--accent); }
+.cl-note { font-size:11px; color:var(--dim); margin-bottom:8px; font-weight:300; }
+textarea.cl-area { width:100%; min-height:260px; background:var(--bg3); border:1px solid var(--border-s); border-radius:10px; padding:16px; font-family:'Outfit',sans-serif; font-size:13px; font-weight:300; color:var(--text); line-height:1.9; resize:vertical; outline:none; transition:border-color .2s; }
+textarea.cl-area:focus { border-color:var(--accent); }
+
+/* PRINT */
+@page { size: A4; margin: 14mm; }
+@media print {
+  * { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .os-nav, .header, .left, .result-actions, .banner, .ats-note, .edit-sec-btn, .cl-wrap, .no-print { display:none !important; }
+  body, html { background:#fff; }
+  .layout { display:block !important; }
+  .right { padding:0 !important; border:none !important; overflow:visible !important; }
+  .res-wrap { display:block !important; }
+  .cv-doc { border:none !important; box-shadow:none !important; padding:0 !important; border-radius:0 !important; }
+  .cv-content[contenteditable] { border:none !important; padding:0 !important; background:transparent !important; }
+  .cv-role { break-inside:avoid; page-break-inside:avoid; }
+}
+
+@media (max-width:700px) {
+  .layout { grid-template-columns:1fr; }
+  .left { border-right:none; border-bottom:1px solid var(--border); }
+  .header, .left, .right { padding:16px 18px; }
+  .title { font-size:26px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="os-nav">
+  <a href="JobSearchOS-Setup.html" class="nav-logo">Job Search <em>OS</em></a>
+  <div class="nav-links">
+    <a href="JobSearchOS-Setup.html" class="nav-link" data-page="setup">Setup</a>
+    <a href="Agent1-JD-Screener.html" class="nav-link" data-page="agent1">01 · JD Screener</a>
+    <a href="Agent4A-CV-Tailorer.html" class="nav-link" data-page="agent4a">02 · CV Tailor</a>
+    <a href="Agent6-History.html" class="nav-link" data-page="agent6">03 · Tracker</a>
+  </div>
+  <div class="nav-context" id="navContext"></div>
+</nav>
+
+<div class="banner warn-banner" id="profileWarn">
+  <span>⚠ No profile found.</span>
+  <a href="JobSearchOS-Setup.html">Go to Setup →</a>
+  <span>to add your master CV and API key first.</span>
+</div>
+
+<div class="banner info-banner" id="jdCarriedBanner">
+  <span id="jdCarriedText">JD carried from Agent 1 ·</span>
+  <span class="banner-close" onclick="dismissCarried()">✕</span>
+</div>
+
+<div class="header">
+  <div>
+    <div class="tag">Job Search OS · Step 02 of 05</div>
+    <div class="title">CV <em>Tailorer</em></div>
+    <div class="sub">Paste a JD. Claude generates a full tailored CV. You edit and download.</div>
+  </div>
+  <div class="pill" id="profilePill">
+    <div class="rdot" id="pillDot"></div>
+    <span id="pillText">Loading profile…</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="left">
+    <div class="lbl">Paste job description</div>
+    <textarea class="jd-area" id="jd" placeholder="Paste the full job description — title, responsibilities, requirements, everything."></textarea>
+    <button class="abtn" id="btn" onclick="run()">Generate tailored CV</button>
+    <div class="hint">Claude generates · you edit inline · download as PDF</div>
+  </div>
+
+  <div class="right">
+    <div class="empty" id="stateEmpty">
+      <div class="empty-arr">→</div>
+      <div class="empty-t">Paste a JD and click Generate. You'll get a fully tailored CV to review and edit.</div>
+    </div>
+    <div class="spin-wrap" id="stateSpin">
+      <div class="spinner"></div>
+      <div class="spin-t">Generating your tailored CV…</div>
+      <div class="spin-s">Reading your master CV<br>Matching to JD requirements<br>Rewriting bullets<br>Checking tone</div>
+    </div>
+    <div class="err-box" id="stateErr"></div>
+    <div class="res-wrap" id="stateRes">
+      <div class="result-actions no-print">
+        <button class="rbtn accent" id="clGenBtn" onclick="generateCoverLetter()">Write cover letter (4B)</button>
+        <button class="rbtn" onclick="resetAll()">New JD</button>
+        <a href="Agent6-History.html" class="rbtn primary">View in Pipeline →</a>
+      </div>
+      <div class="cv-doc" id="cvDoc"></div>
+      <div class="cl-wrap" id="clWrap">
+        <div class="tag" style="margin-bottom:6px">Agent 4B · Cover Letter</div>
+        <div class="cl-spin" id="clSpin">
+          <div class="spinner" style="margin:0 auto 10px"></div>
+          <div class="spin-t">Writing your cover letter…</div>
+        </div>
+        <div id="clResult"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = {
+  vp:  `VP of Operations – TechScale (Series B, Dubai)\n\nB2B SaaS, $45M raised, scaling 150→500 across MENA/Europe. Reports to CEO.\n\nResponsibilities:\n- Design scalable operational processes across all business units\n- Lead team of 12 across ops, customer success, and support\n- Own KPI framework and dashboards for real-time visibility\n- Drive AI-powered workflow improvements\n- Manage 20+ vendor relationships\n\nRequirements:\n- 10+ yrs ops in high-growth tech/marketplace. Track record scaling ops. Team builder.\n- Hands-on with monday.com. MBA preferred. Dubai-based.`,
+  ai:  `Head of AI Operations – Frontier Logistics (London/Dubai hybrid)\n\nAI logistics platform, emerging markets, 200+ partner carriers, 15 countries. First Head of AI Ops, reports to COO.\n\nResponsibilities:\n- Identify processes for AI/automation. Partner with AI/ML on deployment.\n- Build team of 6 ops analysts and automation specialists.\n- Own operational data stack. Drive tool adoption globally.\n\nRequirements:\n- Ops background in logistics/marketplace. Hands-on AI tool implementation.\n- Automation platform experience. 8+ yrs, international exposure preferred.`,
+  coo: `Chief Operating Officer – Nomad (Series A, remote-first)\n\nFuture-of-work platform, 3x growth in 18 months. COO as co-pilot to CEO.\n\nResponsibilities:\n- Own all ops (CS, compliance, finance ops). Scale team 25→80.\n- Build operational playbook from scratch. Implement KPI/OKR framework.\n- Identify AI automation opportunities. Manage global vendor network.\n\nRequirements:\n- Scaled ops at a startup through rapid growth. Genuine interest in AI.\n- International (30+ countries). MBA or equivalent.`,
+  cs:  `Director of Customer Success – Mobility Platform (Dubai)\n\nPremium on-demand mobility, 20+ cities, GCC.\n\nResponsibilities:\n- Lead 35-person CS team. Own onboarding, renewals, escalations.\n- Design CS playbooks. Implement Zendesk + Salesforce.\n- Cross-functional with Product, Ops, Sales.\n\nRequirements:\n- 8+ yrs in CS/ops in marketplace. Track record with large CS teams (30+).\n- Data-driven. GCC/MENA experience preferred.`
+};
+
+let currentCV   = null;
+let currentJD   = '';
+let coverLetter = '';
+let historySaved = false;
+
+function initNav(activePage) {
+  document.querySelectorAll('.nav-link').forEach(l => {
+    if (l.dataset.page === activePage) l.classList.add('active');
+  });
+  const ctx  = localStorage.getItem('pakshi_current_company');
+  const role = localStorage.getItem('pakshi_current_role');
+  if (ctx && role) {
+    const el = document.getElementById('navContext');
+    if (el) { el.textContent = ctx + ' · ' + role; el.classList.add('show'); }
+  }
+}
+
+function getKey() { return localStorage.getItem('pakshi_api_key') || ''; }
+
+window.addEventListener('load', () => {
+  initNav('agent4a');
+
+  const name   = localStorage.getItem('pakshi_profile_name') || '';
+  const cv     = localStorage.getItem('pakshi_master_cv') || '';
+  const key    = getKey();
+  const dot    = document.getElementById('pillDot');
+  const text   = document.getElementById('pillText');
+
+  if (name && cv && key) {
+    dot.className = 'gdot';
+    text.innerHTML = `<strong>${name}</strong>&nbsp;· Profile ready`;
+  } else if (!key || !cv) {
+    dot.className = 'rdot';
+    text.innerHTML = `<a href="JobSearchOS-Setup.html" style="color:var(--warn);font-weight:600;">${!key ? 'API key missing' : 'CV missing'} — Setup →</a>`;
+    document.getElementById('profileWarn').classList.add('show');
+  }
+
+  // Check if JD was carried from Agent 1
+  const savedJD      = localStorage.getItem('pakshi_current_jd') || '';
+  const savedCompany = localStorage.getItem('pakshi_current_company') || '';
+  const savedRole    = localStorage.getItem('pakshi_current_role') || '';
+
+  if (savedJD && savedCompany && savedRole) {
+    document.getElementById('jd').value = savedJD;
+    document.getElementById('jdCarriedText').textContent =
+      `JD carried from Agent 1 · ${savedCompany} — ${savedRole}`;
+    document.getElementById('jdCarriedBanner').classList.add('show');
+  }
+
+  showState('empty');
+});
+
+function dismissCarried() {
+  document.getElementById('jdCarriedBanner').classList.remove('show');
+}
+
+function loadEx(k) {
+  document.getElementById('jd').value = EXAMPLES[k];
+  document.getElementById('jdCarriedBanner').classList.remove('show');
+}
+
+function showState(s) {
+  document.getElementById('stateEmpty').style.display = s === 'empty' ? 'flex'  : 'none';
+  document.getElementById('stateSpin').style.display  = s === 'spin'  ? 'flex'  : 'none';
+  document.getElementById('stateErr').style.display   = s === 'err'   ? 'block' : 'none';
+  document.getElementById('stateRes').style.display   = s === 'res'   ? 'block' : 'none';
+}
+
+async function run() {
+  const jd  = document.getElementById('jd').value.trim();
+  const key = getKey();
+  const masterCV = localStorage.getItem('pakshi_master_cv') || '';
+  const target   = localStorage.getItem('pakshi_profile_target') || '';
+  const name     = localStorage.getItem('pakshi_profile_name') || 'Candidate';
+
+  if (!jd)      { document.getElementById('jd').focus(); return; }
+  if (!key)     { alert('No API key found. Go to Setup and save your Anthropic API key first.'); return; }
+  if (!masterCV){ alert('No master CV found. Go to Setup and paste your CV first.'); return; }
+
+  currentJD    = jd;
+  currentCV    = null;
+  coverLetter  = '';
+  historySaved = false;
+
+  showState('spin');
+  const btn = document.getElementById('btn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+
+  const SYS = `You are Agent 4A of ${name}'s Job Search OS. Generate a complete, ready-to-use tailored CV based on the master CV below and the provided job description.
+
+MASTER CV:
+${masterCV}
+
+${target ? `TARGET ROLES: ${target}\n` : ''}
+
+TONE RULES — apply strictly:
+1. BULLET STRUCTURE — implied subject + action → context/scale → measurable result. All three elements must be present in every bullet. Weak: "Managed a team of 30." Strong: "Built and managed a 30-person ops team across 5 countries, holding attrition below 8% through 3x headcount growth." If a metric exists in the master CV, use it exactly. If no metric exists, use relative language (e.g., "cut by half", "first in the region") — never invent numbers.
+2. One clear fact per bullet. No filler, no padding, no second idea bolted on.
+3. BANNED WORDS — never output any of: leveraged, spearheaded, orchestrated, passionate, dynamic, transformative, results-driven, synergies, cutting-edge, holistic, seamlessly, stakeholder management.
+4. BANNED BULLET PATTERN — never end a bullet with an em dash followed by a summary phrase. State the achievement and stop.
+5. BANNED COINED PHRASES — never use: zero-to-scaled, first-principles, end-to-end ownership, full-stack thinking, cross-functional excellence, execution-focused, player-coach, north star.
+6. Summary can be first or third person — whichever sounds more natural and punchy.
+7. Reorder and rewrite bullets to foreground what matters most for this specific JD. Surface buried achievements from the master CV where relevant.
+8. ATS & KEYWORD EMBEDDING — identify the 8–12 most critical phrases from the JD (role synonyms, required skills, tools, methodologies, sector terms). Embed them naturally within bullet points and the summary where truthful. They must appear in the CV text itself — do not just list them. Record which phrases you used in the ats_keywords field.
+9. ESSENCE RULE — never invent achievements, metrics, or experiences not present in the master CV. You may rephrase, reorder, and reframe — but every fact must be grounded in the master CV. If the JD requires something not in the CV, omit it rather than fabricate.
+10. For the "changed" flag: set true for any bullet you rewrote; false for bullets taken verbatim from the master CV.
+
+Return ONLY valid JSON with no markdown fences or extra text:
+{
+  "name": "full name from CV",
+  "location": "city, country",
+  "email": "email address",
+  "phone": "phone if present in CV, else empty string",
+  "linkedin": "LinkedIn URL if present in CV, else empty string",
+  "headline": "tailored headline for this role — 8-14 words, specific to the JD",
+  "summary": "3-4 sentence professional summary in the candidate's voice, tailored to this JD",
+  "experience": [
+    {
+      "title": "job title",
+      "company": "company name",
+      "period": "date range",
+      "bullets": ["bullet 1", "bullet 2", "bullet 3"],
+      "changed": true
+    }
+  ],
+  "skills": {
+    "lead": ["6-8 most relevant skills for this JD in priority order"],
+    "other": ["3-5 secondary skills worth keeping"]
+  },
+  "education": [
+    { "degree": "degree name", "school": "school name", "year": "year" }
+  ],
+  "ats_keywords": ["exact JD phrases you embedded in the bullets or summary above — for verification"]
+}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4000,
+        system: SYS,
+        messages: [{ role: 'user', content: `Generate a tailored CV for this role:\n\n${jd}` }]
+      })
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`API error ${resp.status}: ${t.slice(0, 200)}`);
+    }
+
+    const data = await resp.json();
+    const raw  = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    currentCV = parsed;
+    renderCV(parsed);
+    saveToHistory();
+
+  } catch(e) {
+    showState('err');
+    document.getElementById('stateErr').innerHTML =
+      `<strong>Failed:</strong> ${e.message}<br><br>Check your API key has credits. If the error mentions JSON, try again — the response may have been truncated.`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate tailored CV';
+  }
+}
+
+function renderCV(cv) {
+  const contact = [cv.location, cv.email, cv.phone].filter(Boolean).join('  ·  ');
+  const expHTML = (cv.experience || []).map((role, ri) => {
+    const bullets = (role.bullets || []).map((b, bi) => {
+      const cls = role.changed !== false ? 'changed-bullet' : '';
+      return `<li class="${cls}" data-ri="${ri}" data-bi="${bi}">${esc(b)}</li>`;
+    }).join('');
+    return `<div class="cv-role">
+      <div class="cv-role-hdr">
+        <div class="cv-role-title">${esc(role.title)}</div>
+        <div class="cv-role-period">${esc(role.period)}</div>
+      </div>
+      <div class="cv-role-company">${esc(role.company)}</div>
+      ${bullets ? `<ul class="cv-bullets">${bullets}</ul>` : ''}
+    </div>`;
+  }).join('');
+
+  const leadSkills  = (cv.skills?.lead  || []).join('  ·  ');
+  const otherSkills = (cv.skills?.other || []).join('  ·  ');
+
+  const eduHTML = (cv.education || []).map(e =>
+    `<div class="cv-edu-row">
+      <span><span class="cv-edu-deg">${esc(e.degree)}</span> · ${esc(e.school)}</span>
+      <span class="cv-edu-yr">${esc(e.year)}</span>
+    </div>`
+  ).join('');
+
+  const kwHTML = (cv.ats_keywords || []).map(k => `<span class="ats-chip">${esc(k)}</span>`).join('');
+
+  document.getElementById('cvDoc').innerHTML = `
+    <div class="cv-name">${esc(cv.name)}</div>
+    <div class="cv-contact-line">${esc(contact)}</div>
+
+    <div class="cv-sec">
+      <div class="cv-sec-hdr">
+        <div class="cv-sec-title">Summary</div>
+        <button class="edit-sec-btn no-print" onclick="toggleEdit(this,'sec-summary')">Edit</button>
+      </div>
+      <div class="cv-content cv-summary" id="sec-summary" contenteditable="false">${esc(cv.summary)}</div>
+    </div>
+
+    <div class="cv-sec">
+      <div class="cv-sec-hdr">
+        <div class="cv-sec-title">Experience</div>
+        <button class="edit-sec-btn no-print" onclick="toggleEdit(this,'sec-experience')">Edit</button>
+      </div>
+      <div class="cv-content" id="sec-experience" contenteditable="false">${expHTML}</div>
+    </div>
+
+    <div class="cv-sec">
+      <div class="cv-sec-hdr">
+        <div class="cv-sec-title">Skills</div>
+        <button class="edit-sec-btn no-print" onclick="toggleEdit(this,'sec-skills')">Edit</button>
+      </div>
+      <div class="cv-content" id="sec-skills" contenteditable="false">
+        ${leadSkills  ? `<div class="cv-skill-lbl" style="margin-bottom:3px">Core</div><div class="cv-skill-list" style="margin-bottom:8px">${esc(leadSkills)}</div>` : ''}
+        ${otherSkills ? `<div class="cv-skill-lbl" style="margin-bottom:3px">Additional</div><div class="cv-skill-list">${esc(otherSkills)}</div>` : ''}
+      </div>
+    </div>
+
+    ${eduHTML ? `
+    <div class="cv-sec">
+      <div class="cv-sec-hdr">
+        <div class="cv-sec-title">Education</div>
+        <button class="edit-sec-btn no-print" onclick="toggleEdit(this,'sec-education')">Edit</button>
+      </div>
+      <div class="cv-content" id="sec-education" contenteditable="false">${eduHTML}</div>
+    </div>` : ''}
+
+    ${kwHTML ? `
+    <div class="ats-note no-print">
+      <div class="ats-lbl" style="margin-bottom:5px">ATS keywords from JD — use these naturally</div>
+      <div class="ats-chips">${kwHTML}</div>
+    </div>` : ''}`;
+
+  showState('res');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleEdit(btn, sectionId) {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  const isEditing = el.contentEditable === 'true';
+  el.contentEditable = isEditing ? 'false' : 'true';
+  btn.textContent = isEditing ? 'Edit' : 'Done';
+  btn.classList.toggle('editing', !isEditing);
+  if (!isEditing) { el.focus(); }
+}
+
+function saveToHistory() {
+  if (historySaved) return;
+  try {
+    const history = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+    const entry = {
+      id:          Date.now().toString(),
+      date:        new Date().toISOString(),
+      company:     localStorage.getItem('pakshi_current_company') || 'Unknown Company',
+      role:        localStorage.getItem('pakshi_current_role')    || 'Unknown Role',
+      score:       localStorage.getItem('pakshi_current_score')   || '',
+      jdText:      currentJD,
+      cvJson:      currentCV ? JSON.stringify(currentCV) : '{}',
+      coverLetter: coverLetter || ''
+    };
+    history.unshift(entry);
+    localStorage.setItem('pakshi_history', JSON.stringify(history));
+    historySaved = true;
+  } catch(e) { console.error('History save failed', e); }
+}
+
+
+async function generateCoverLetter() {
+  const key  = getKey();
+  const name = localStorage.getItem('pakshi_profile_name') || 'Candidate';
+  const masterCV = localStorage.getItem('pakshi_master_cv') || '';
+  if (!key) { alert('API key needed.'); return; }
+  if (!currentJD) { alert('Generate a CV first.'); return; }
+
+  const btn = document.getElementById('clGenBtn');
+  btn.disabled = true; btn.textContent = 'Writing…';
+
+  const clWrap   = document.getElementById('clWrap');
+  const clSpin   = document.getElementById('clSpin');
+  const clResult = document.getElementById('clResult');
+  clWrap.style.display   = 'block';
+  clSpin.style.display   = 'block';
+  clResult.innerHTML     = '';
+  setTimeout(() => clWrap.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+
+  const SYS = `You are Agent 4B of ${name}'s Job Search OS — cover letter writer.
+
+MASTER CV:
+${masterCV}
+
+RULES:
+1. Do NOT open with "I am writing to apply", "I am a", or "With X years of experience."
+2. Open with an insight specific to what this company or role is trying to solve.
+3. Exactly 3 paragraphs, ~260 words total.
+4. Tone: direct, confident, numbers-grounded. Not showy.
+5. Para 1: Why this role is interesting and what you understand about the problem they are solving.
+6. Para 2: 2-3 specific achievements that directly answer what this role demands. Numbers. Specific.
+7. Para 3: Brief, confident close. Not: "I would be thrilled" / "I look forward to hearing."
+8. BANNED: leveraged, spearheaded, orchestrated, passionate, dynamic, transformative, results-driven, synergies, seamlessly.
+9. Vary sentence length. Must read like a thoughtful person wrote it, not a template.
+
+Return ONLY valid JSON, no markdown:
+{"subject_line":"Application — [Role Title]: [Candidate Name]","opening":"first paragraph","evidence":"second paragraph","close":"third paragraph"}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: SYS,
+        messages: [{ role: 'user', content: `Write a cover letter for this role:\n\n${currentJD}` }]
+      })
+    });
+
+    if (!resp.ok) { const t = await resp.text(); throw new Error(`${resp.status}: ${t.slice(0, 200)}`); }
+
+    const data = await resp.json();
+    const raw  = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const cl   = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    const body = `${cl.opening}\n\n${cl.evidence}\n\n${cl.close}`;
+    coverLetter = body;
+
+    clSpin.style.display = 'none';
+    clResult.innerHTML = `
+      <div class="cl-note">Edit directly before copying.</div>
+      <input class="cl-subject-input" id="clSubject" value="${cl.subject_line.replace(/"/g, '&quot;')}" />
+      <textarea class="cl-area" id="clBody">${body}</textarea>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="rbtn primary" onclick="copyLetter(this)">Copy full letter</button>
+        <button class="rbtn" onclick="resetAll()">New JD</button>
+      </div>`;
+
+    // Update history entry with cover letter if already saved
+    if (historySaved) {
+      try {
+        const history = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+        if (history.length && !history[0].coverLetter) {
+          history[0].coverLetter = body;
+          localStorage.setItem('pakshi_history', JSON.stringify(history));
+        }
+      } catch(e) {}
+    }
+
+  } catch(e) {
+    clSpin.style.display = 'none';
+    clResult.innerHTML = `<div style="color:var(--no);font-size:13px;padding:10px 0"><strong>Cover letter failed:</strong> ${e.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Regenerate cover letter';
+  }
+}
+
+function copyLetter(btn) {
+  const subject = (document.getElementById('clSubject') || {}).value || '';
+  const body    = (document.getElementById('clBody')    || {}).value || '';
+  const full    = `Subject: ${subject}\n\n${body}`;
+  const orig    = btn.textContent;
+  navigator.clipboard.writeText(full).then(() => {
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => btn.textContent = orig, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = full; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => btn.textContent = orig, 2000);
+  });
+}
+
+function resetAll() {
+  document.getElementById('jd').value = '';
+  currentCV    = null;
+  currentJD    = '';
+  coverLetter  = '';
+  historySaved = false;
+  document.getElementById('cvDoc').innerHTML       = '';
+  document.getElementById('clWrap').style.display  = 'none';
+  document.getElementById('clResult').innerHTML    = '';
+  document.getElementById('clGenBtn').textContent  = 'Write cover letter (4B)';
+  document.getElementById('clGenBtn').disabled     = false;
+  showState('empty');
+}
+</script>
+</body>
+</html>

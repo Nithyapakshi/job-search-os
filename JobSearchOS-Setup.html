@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup — Job Search OS</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f3ee; --bg2: #eceae3; --bg3: #fff;
+  --border: rgba(0,0,0,0.08); --border-s: rgba(0,0,0,0.15);
+  --text: #1a1916; --mid: #5a5850; --dim: #9a9890;
+  --accent: #534ab7;
+  --go: #0f6e56; --go-bg: #e1f5ee; --go-border: rgba(15,110,86,.2);
+  --warn: #854f0b; --warn-bg: #faeeda;
+  --no: #a32d2d; --no-bg: #fcebeb;
+}
+html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; }
+
+.os-nav { display:flex; align-items:center; padding:0 32px; border-bottom:1px solid var(--border); background:var(--bg); height:48px; position:sticky; top:0; z-index:100; }
+.nav-logo { font-family:'Instrument Serif',serif; font-size:17px; color:var(--text); text-decoration:none; margin-right:32px; flex-shrink:0; }
+.nav-logo em { font-style:italic; color:var(--accent); }
+.nav-links { display:flex; gap:2px; flex:1; }
+.nav-link { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); text-decoration:none; padding:0 14px; height:48px; display:flex; align-items:center; border-bottom:2px solid transparent; transition:color .15s,border-color .15s; white-space:nowrap; }
+.nav-link:hover { color:var(--mid); }
+.nav-link.active { color:var(--accent); border-bottom-color:var(--accent); }
+.nav-context { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--dim); letter-spacing:.06em; padding:4px 10px; background:var(--bg2); border-radius:6px; display:none; }
+.nav-context.show { display:block; }
+
+.header { padding: 28px 32px 24px; border-bottom: 1px solid var(--border); }
+.tag { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin-bottom:5px; }
+.title { font-family:'Instrument Serif',serif; font-size:32px; line-height:1; letter-spacing:-.01em; }
+.title em { font-style:italic; color:var(--accent); }
+.sub { font-size:13px; color:var(--mid); margin-top:4px; font-weight:300; }
+
+.layout { display:grid; grid-template-columns:1fr 1fr; min-height:calc(100vh - 120px); }
+.left { padding:28px 32px; border-right:1px solid var(--border); }
+.right { padding:28px 32px; }
+
+.field { margin-bottom:20px; }
+.lbl { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); margin-bottom:7px; display:block; }
+input[type=text], input[type=password], textarea { width:100%; background:var(--bg3); border:1px solid var(--border-s); border-radius:8px; padding:10px 13px; font-family:'Outfit',sans-serif; font-size:13px; font-weight:300; color:var(--text); outline:none; transition:border-color .2s; }
+input[type=text]:focus, input[type=password]:focus, textarea:focus { border-color:var(--accent); }
+input::placeholder, textarea::placeholder { color:var(--dim); }
+textarea.cv-area { height:220px; resize:vertical; line-height:1.6; }
+textarea.target-area { height:72px; resize:vertical; line-height:1.6; }
+
+.save-btn { width:100%; padding:13px; background:var(--text); color:#f5f3ee; border:none; border-radius:8px; font-family:'Outfit',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:opacity .2s; letter-spacing:.02em; }
+.save-btn:hover { opacity:.85; }
+.save-success { display:none; text-align:center; font-size:13px; color:var(--go); font-weight:600; margin-top:8px; }
+.clear-link { display:block; text-align:center; margin-top:14px; font-size:11px; color:var(--dim); cursor:pointer; text-decoration:underline; }
+.clear-link:hover { color:var(--no); }
+
+.cv-label-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; }
+.upload-btn { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:4px 10px; border:1px solid var(--border-s); border-radius:5px; background:var(--bg2); color:var(--dim); cursor:pointer; transition:all .15s; }
+.upload-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--bg3); }
+.upload-btn.loaded { border-color:var(--go-border); color:var(--go); background:var(--go-bg); }
+.upload-err { font-size:11px; color:var(--no); margin-top:5px; display:none; }
+
+/* Right panel */
+.profile-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:160px; text-align:center; gap:8px; background:var(--bg2); border-radius:10px; padding:24px; margin-bottom:20px; }
+.profile-empty-t { font-size:13px; color:var(--dim); font-weight:300; }
+.profile-card { background:var(--bg3); border:1px solid var(--border-s); border-radius:10px; padding:20px; margin-bottom:20px; }
+.profile-name { font-family:'Instrument Serif',serif; font-size:22px; color:var(--text); margin-bottom:4px; }
+.profile-badge { display:inline-flex; align-items:center; gap:6px; background:var(--go-bg); border:1px solid var(--go-border); border-radius:6px; padding:4px 10px; font-size:11px; color:var(--go); font-weight:600; font-family:'IBM Plex Mono',monospace; letter-spacing:.06em; margin-bottom:12px; }
+.profile-section { margin-bottom:10px; }
+.profile-lbl { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); margin-bottom:4px; }
+.profile-val { font-size:12px; color:var(--mid); font-weight:300; line-height:1.5; }
+.profile-cv-preview { font-size:11px; color:var(--dim); font-weight:300; line-height:1.5; background:var(--bg2); border-radius:6px; padding:10px; font-family:'IBM Plex Mono',monospace; white-space:pre-wrap; word-break:break-word; }
+
+.agent-links { display:flex; flex-direction:column; gap:8px; }
+.agent-link-card { display:flex; align-items:center; justify-content:space-between; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:14px 16px; text-decoration:none; transition:border-color .15s; }
+.agent-link-card:hover { border-color:var(--accent); }
+.alc-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-bottom:3px; }
+.alc-desc { font-size:12px; color:var(--mid); font-weight:300; }
+.alc-arrow { font-size:16px; color:var(--dim); }
+
+@media (max-width:700px) {
+  .layout { grid-template-columns:1fr; }
+  .left { border-right:none; border-bottom:1px solid var(--border); }
+  .header, .left, .right { padding:16px 18px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="os-nav">
+  <a href="JobSearchOS-Setup.html" class="nav-logo">Job Search <em>OS</em></a>
+  <div class="nav-links">
+    <a href="JobSearchOS-Setup.html" class="nav-link" data-page="setup">Setup</a>
+    <a href="Agent1-JD-Screener.html" class="nav-link" data-page="agent1">01 · JD Screener</a>
+    <a href="Agent4A-CV-Tailorer.html" class="nav-link" data-page="agent4a">02 · CV Tailor</a>
+    <a href="Agent6-History.html" class="nav-link" data-page="agent6">03 · Tracker</a>
+  </div>
+  <div class="nav-context" id="navContext"></div>
+</nav>
+
+<div class="header">
+  <div class="tag">Job Search OS · Setup</div>
+  <div class="title">Your <em>Profile</em></div>
+  <div class="sub">Set up once. Every agent reads from here.</div>
+</div>
+
+<div class="layout">
+  <div class="left">
+    <div class="field">
+      <label class="lbl" for="apiKeyInput">Anthropic API Key</label>
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" />
+    </div>
+    <div class="field">
+      <label class="lbl" for="nameInput">Your Name</label>
+      <input type="text" id="nameInput" placeholder="e.g. Pakshiraj Ananthan" />
+    </div>
+    <div class="field">
+      <label class="lbl" for="targetInput">Target Roles</label>
+      <textarea class="target-area" id="targetInput" placeholder="e.g. Head/VP/Director Operations, Head AI Ops, COO at growth-stage companies — Dubai or remote"></textarea>
+    </div>
+    <div class="field">
+      <div class="cv-label-row">
+        <label class="lbl" for="cvInput" style="margin-bottom:0">Master CV</label>
+        <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('cvFileInput').click()">⬆ Upload .docx or .txt</button>
+      </div>
+      <input type="file" id="cvFileInput" accept=".docx,.txt" style="display:none" onchange="handleCVFile(this)" />
+      <div class="upload-err" id="uploadErr"></div>
+      <textarea class="cv-area" id="cvInput" placeholder="Paste your full CV here — or upload a .docx / .txt above. All roles, bullets, skills, education. This is the source every agent works from."></textarea>
+    </div>
+    <button class="save-btn" onclick="saveProfile()">Save profile</button>
+    <div class="save-success" id="saveSuccess">Profile saved ✓</div>
+    <span class="clear-link" onclick="clearAll()">Clear all saved data</span>
+  </div>
+
+  <div class="right">
+    <div id="profileDisplay"></div>
+    <div class="agent-links">
+      <a href="Agent1-JD-Screener.html" class="agent-link-card">
+        <div><div class="alc-label">01 · JD Screener</div><div class="alc-desc">Screen a new role for fit</div></div>
+        <div class="alc-arrow">→</div>
+      </a>
+      <a href="Agent4A-CV-Tailorer.html" class="agent-link-card">
+        <div><div class="alc-label">04A · CV Tailorer</div><div class="alc-desc">Generate a tailored CV for a role</div></div>
+        <div class="alc-arrow">→</div>
+      </a>
+      <a href="Agent6-History.html" class="agent-link-card">
+        <div><div class="alc-label">06 · Pipeline</div><div class="alc-desc">View all past applications</div></div>
+        <div class="alc-arrow">→</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function initNav(activePage) {
+  document.querySelectorAll('.nav-link').forEach(l => {
+    if (l.dataset.page === activePage) l.classList.add('active');
+  });
+  const ctx = localStorage.getItem('pakshi_current_company');
+  const role = localStorage.getItem('pakshi_current_role');
+  if (ctx && role) {
+    const el = document.getElementById('navContext');
+    if (el) { el.textContent = ctx + ' · ' + role; el.classList.add('show'); }
+  }
+}
+
+function renderProfile() {
+  const name = localStorage.getItem('pakshi_profile_name') || '';
+  const target = localStorage.getItem('pakshi_profile_target') || '';
+  const cv = localStorage.getItem('pakshi_master_cv') || '';
+  const el = document.getElementById('profileDisplay');
+  if (!name && !cv) {
+    el.innerHTML = `<div class="profile-empty"><div class="profile-empty-t">Your profile will appear here once saved.</div></div>`;
+    return;
+  }
+  const cvPreview = cv.slice(0, 280) + (cv.length > 280 ? '…' : '');
+  el.innerHTML = `
+    <div class="profile-card">
+      <div class="profile-name">${name || 'Your Name'}</div>
+      <div class="profile-badge">✓ Profile ready</div>
+      ${target ? `<div class="profile-section"><div class="profile-lbl">Target roles</div><div class="profile-val">${target}</div></div>` : ''}
+      ${cv ? `<div class="profile-section"><div class="profile-lbl">Master CV preview</div><div class="profile-cv-preview">${cvPreview}</div></div>` : ''}
+    </div>`;
+}
+
+function saveProfile() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const name = document.getElementById('nameInput').value.trim();
+  const target = document.getElementById('targetInput').value.trim();
+  const cv = document.getElementById('cvInput').value.trim();
+  if (key) localStorage.setItem('pakshi_api_key', key);
+  if (name) localStorage.setItem('pakshi_profile_name', name);
+  if (target) localStorage.setItem('pakshi_profile_target', target);
+  if (cv) localStorage.setItem('pakshi_master_cv', cv);
+  renderProfile();
+  const s = document.getElementById('saveSuccess');
+  s.style.display = 'block';
+  setTimeout(() => { s.style.display = 'none'; }, 2500);
+}
+
+function clearAll() {
+  if (!confirm('This will delete your master CV, profile, API key, and all history. Are you sure?')) return;
+  ['pakshi_api_key','pakshi_profile_name','pakshi_profile_target','pakshi_master_cv',
+   'pakshi_current_jd','pakshi_current_company','pakshi_current_role','pakshi_current_score',
+   'pakshi_current_cv_json','pakshi_history'].forEach(k => localStorage.removeItem(k));
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('targetInput').value = '';
+  document.getElementById('cvInput').value = '';
+  renderProfile();
+}
+
+function handleCVFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const btn = document.getElementById('uploadBtn');
+  const errEl = document.getElementById('uploadErr');
+  errEl.style.display = 'none';
+  btn.textContent = 'Reading…';
+
+  if (file.name.endsWith('.txt')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('cvInput').value = e.target.result;
+      btn.textContent = '✓ ' + file.name;
+      btn.classList.add('loaded');
+    };
+    reader.onerror = () => showUploadErr('Could not read file.');
+    reader.readAsText(file);
+
+  } else if (file.name.endsWith('.docx')) {
+    if (typeof mammoth === 'undefined') {
+      showUploadErr('mammoth.js failed to load — check your internet connection and refresh.');
+      btn.textContent = '⬆ Upload .docx or .txt';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      mammoth.extractRawText({ arrayBuffer: e.target.result })
+        .then(result => {
+          document.getElementById('cvInput').value = result.value;
+          btn.textContent = '✓ ' + file.name;
+          btn.classList.add('loaded');
+        })
+        .catch(err => showUploadErr('Could not parse .docx: ' + err.message));
+    };
+    reader.onerror = () => showUploadErr('Could not read file.');
+    reader.readAsArrayBuffer(file);
+
+  } else {
+    showUploadErr('Unsupported file type. Use .docx or .txt.');
+    btn.textContent = '⬆ Upload .docx or .txt';
+  }
+
+  // Reset input so same file can be re-uploaded if needed
+  input.value = '';
+}
+
+function showUploadErr(msg) {
+  const errEl = document.getElementById('uploadErr');
+  errEl.textContent = msg;
+  errEl.style.display = 'block';
+  document.getElementById('uploadBtn').textContent = '⬆ Upload .docx or .txt';
+}
+
+window.addEventListener('load', () => {
+  initNav('setup');
+  const key = localStorage.getItem('pakshi_api_key');
+  if (key) document.getElementById('apiKeyInput').placeholder = 'Key saved ✓ (enter new to update)';
+  const name = localStorage.getItem('pakshi_profile_name') || '';
+  const target = localStorage.getItem('pakshi_profile_target') || '';
+  const cv = localStorage.getItem('pakshi_master_cv') || '';
+  if (name) document.getElementById('nameInput').value = name;
+  if (target) document.getElementById('targetInput').value = target;
+  if (cv) document.getElementById('cvInput').value = cv;
+  renderProfile();
+});
+</script>
+</body>
+</html>
