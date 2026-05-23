@@ -228,7 +228,7 @@ async function saveProfile() {
     const prev = localStorage.getItem('pakshi_gist_token');
     if (gistToken !== prev) localStorage.removeItem('pakshi_gist_id');
     localStorage.setItem('pakshi_gist_token', gistToken);
-    gistEnsureId(gistToken).catch(e => console.warn('Gist init:', e.message));
+    gistEnsureId(gistToken).then(() => renderProfile()).catch(e => console.warn('Gist init:', e.message));
   }
   renderProfile();
   const s = document.getElementById('saveSuccess');
