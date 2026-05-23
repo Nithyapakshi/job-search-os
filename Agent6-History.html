@@ -661,6 +661,7 @@ function deleteEntry(id) {
 window.addEventListener('load', async () => {
   initNav('agent6');
   await pullFromGist(showSyncStatus);
+  pushToGist();
   renderList();
   renderAnalytics();
 });
