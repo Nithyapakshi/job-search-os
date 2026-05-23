@@ -161,7 +161,10 @@ html, body { min-height:100%; background:var(--bg); color:var(--text); font-fami
     <div class="title">Application <em>Tracker</em></div>
     <div class="sub">Your job search command centre. Every application, all in one place.</div>
   </div>
-  <a href="Agent1-JD-Screener.html" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--text);color:var(--bg);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;text-decoration:none;flex-shrink:0;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ New application</a>
+  <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+    <span id="syncStatus" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);display:none"></span>
+    <a href="Agent1-JD-Screener.html" style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;background:var(--text);color:var(--bg);border-radius:8px;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;text-decoration:none;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ New application</a>
+  </div>
 </div>
 
 <div class="main">
@@ -207,6 +210,87 @@ html, body { min-height:100%; background:var(--bg); color:var(--text); font-fami
 
 <script>
 const LINKEDIN_URL = 'https://www.linkedin.com/in/pakshiraj/';
+const GIST_DESC = 'job-search-os-sync';
+
+async function gistEnsureId(token) {
+  let id = localStorage.getItem('pakshi_gist_id');
+  if (id) return id;
+  const list = await fetch('https://api.github.com/gists?per_page=100', {
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (!list.ok) throw new Error('GitHub API error ' + list.status);
+  const gists = await list.json();
+  const found = gists.find(g => g.description === GIST_DESC);
+  if (found) { localStorage.setItem('pakshi_gist_id', found.id); return found.id; }
+  const create = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: GIST_DESC, public: false, files: { 'applications.json': { content: JSON.stringify({ v:1, apps:[], ts:0 }) } } })
+  });
+  if (!create.ok) throw new Error('Failed to create gist');
+  const gist = await create.json();
+  localStorage.setItem('pakshi_gist_id', gist.id);
+  return gist.id;
+}
+
+function mergeApps(local, remote) {
+  const map = new Map();
+  [...remote, ...local].forEach(app => {
+    const prev = map.get(app.id);
+    if (!prev) { map.set(app.id, app); return; }
+    const tPrev = prev.updatedAt || prev.date || '0';
+    const tNew  = app.updatedAt  || app.date  || '0';
+    const winner = tNew > tPrev ? app : prev;
+    const loser  = tNew > tPrev ? prev : app;
+    map.set(app.id, { ...winner, prepData: winner.prepData || loser.prepData });
+  });
+  return [...map.values()].sort((a, b) => (b.date > a.date ? 1 : -1));
+}
+
+async function pullFromGist(onStatus) {
+  const token = localStorage.getItem('pakshi_gist_token');
+  if (!token) return false;
+  try {
+    if (onStatus) onStatus('syncing');
+    const id = await gistEnsureId(token);
+    const resp = await fetch(`https://api.github.com/gists/${id}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!resp.ok) throw new Error('GET ' + resp.status);
+    const gist = await resp.json();
+    const content = gist.files?.['applications.json']?.content;
+    if (content) {
+      const { apps: remote = [] } = JSON.parse(content);
+      const local = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+      localStorage.setItem('pakshi_history', JSON.stringify(mergeApps(local, remote)));
+    }
+    if (onStatus) onStatus('ok');
+    return true;
+  } catch(e) { console.warn('Gist pull:', e.message); if (onStatus) onStatus('err'); return false; }
+}
+
+async function pushToGist() {
+  const token = localStorage.getItem('pakshi_gist_token');
+  if (!token) return;
+  try {
+    const id = await gistEnsureId(token);
+    const apps = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+    const lean = apps.map(({ prepData, ...r }) => r);
+    await fetch(`https://api.github.com/gists/${id}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: { 'applications.json': { content: JSON.stringify({ v:1, apps:lean, ts:Date.now() }) } } })
+    });
+  } catch(e) { console.warn('Gist push:', e.message); }
+}
+
+function showSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  if (state === 'syncing') { el.textContent = 'Syncing…'; el.style.display = ''; }
+  else if (state === 'ok') { el.textContent = 'Synced ✓'; el.style.display = ''; setTimeout(() => { el.style.display = 'none'; }, 3000); }
+  else if (state === 'err') { el.textContent = 'Sync failed'; el.style.display = ''; setTimeout(() => { el.style.display = 'none'; }, 5000); }
+}
 const STATUS_CYCLE = ['applied','interview','offer','rejected'];
 const STATUS_LABEL = { applied:'Applied', interview:'Interview Scheduled', offer:'Offer', rejected:'Rejected' };
 
@@ -252,10 +336,12 @@ function cycleStatus(id, event) {
   if (idx === -1) return;
   const cur = history[idx].status || 'applied';
   history[idx].status = STATUS_CYCLE[(STATUS_CYCLE.indexOf(cur) + 1) % STATUS_CYCLE.length];
+  history[idx].updatedAt = new Date().toISOString();
   localStorage.setItem('pakshi_history', JSON.stringify(history));
   if (currentEntry && currentEntry.id === id) currentEntry = history[idx];
   renderList();
   renderAnalytics();
+  pushToGist();
 }
 
 function renderList() {
@@ -569,10 +655,12 @@ function deleteEntry(id) {
   localStorage.setItem('pakshi_history', JSON.stringify(getHistory().filter(e => e.id !== id)));
   if (currentEntry?.id === id) closePanel();
   renderList(); renderAnalytics();
+  pushToGist();
 }
 
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
   initNav('agent6');
+  await pullFromGist(showSyncStatus);
   renderList();
   renderAnalytics();
 });

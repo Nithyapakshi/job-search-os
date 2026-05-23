@@ -229,6 +229,76 @@ textarea.cl-area:focus { border-color:var(--accent); }
 </div>
 
 <script>
+const GIST_DESC = 'job-search-os-sync';
+
+async function gistEnsureId(token) {
+  let id = localStorage.getItem('pakshi_gist_id');
+  if (id) return id;
+  const list = await fetch('https://api.github.com/gists?per_page=100', {
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (!list.ok) throw new Error('GitHub API error ' + list.status);
+  const gists = await list.json();
+  const found = gists.find(g => g.description === GIST_DESC);
+  if (found) { localStorage.setItem('pakshi_gist_id', found.id); return found.id; }
+  const create = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: GIST_DESC, public: false, files: { 'applications.json': { content: JSON.stringify({ v:1, apps:[], ts:0 }) } } })
+  });
+  if (!create.ok) throw new Error('Failed to create gist');
+  const gist = await create.json();
+  localStorage.setItem('pakshi_gist_id', gist.id);
+  return gist.id;
+}
+
+function mergeApps(local, remote) {
+  const map = new Map();
+  [...remote, ...local].forEach(app => {
+    const prev = map.get(app.id);
+    if (!prev) { map.set(app.id, app); return; }
+    const tPrev = prev.updatedAt || prev.date || '0';
+    const tNew  = app.updatedAt  || app.date  || '0';
+    const winner = tNew > tPrev ? app : prev;
+    const loser  = tNew > tPrev ? prev : app;
+    map.set(app.id, { ...winner, prepData: winner.prepData || loser.prepData });
+  });
+  return [...map.values()].sort((a, b) => (b.date > a.date ? 1 : -1));
+}
+
+async function pullFromGist() {
+  const token = localStorage.getItem('pakshi_gist_token');
+  if (!token) return;
+  try {
+    const id = await gistEnsureId(token);
+    const resp = await fetch(`https://api.github.com/gists/${id}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (!resp.ok) return;
+    const gist = await resp.json();
+    const content = gist.files?.['applications.json']?.content;
+    if (!content) return;
+    const { apps: remote = [] } = JSON.parse(content);
+    const local = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+    localStorage.setItem('pakshi_history', JSON.stringify(mergeApps(local, remote)));
+  } catch(e) { console.warn('Gist pull:', e.message); }
+}
+
+async function pushToGist() {
+  const token = localStorage.getItem('pakshi_gist_token');
+  if (!token) return;
+  try {
+    const id = await gistEnsureId(token);
+    const apps = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
+    const lean = apps.map(({ prepData, ...r }) => r);
+    await fetch(`https://api.github.com/gists/${id}`, {
+      method: 'PATCH',
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files: { 'applications.json': { content: JSON.stringify({ v:1, apps:lean, ts:Date.now() }) } } })
+    });
+  } catch(e) { console.warn('Gist push:', e.message); }
+}
+
 const EXAMPLES = {
   vp:  `VP of Operations – TechScale (Series B, Dubai)\n\nB2B SaaS, $45M raised, scaling 150→500 across MENA/Europe. Reports to CEO.\n\nResponsibilities:\n- Design scalable operational processes across all business units\n- Lead team of 12 across ops, customer success, and support\n- Own KPI framework and dashboards for real-time visibility\n- Drive AI-powered workflow improvements\n- Manage 20+ vendor relationships\n\nRequirements:\n- 10+ yrs ops in high-growth tech/marketplace. Track record scaling ops. Team builder.\n- Hands-on with monday.com. MBA preferred. Dubai-based.`,
   ai:  `Head of AI Operations – Frontier Logistics (London/Dubai hybrid)\n\nAI logistics platform, emerging markets, 200+ partner carriers, 15 countries. First Head of AI Ops, reports to COO.\n\nResponsibilities:\n- Identify processes for AI/automation. Partner with AI/ML on deployment.\n- Build team of 6 ops analysts and automation specialists.\n- Own operational data stack. Drive tool adoption globally.\n\nRequirements:\n- Ops background in logistics/marketplace. Hands-on AI tool implementation.\n- Automation platform experience. 8+ yrs, international exposure preferred.`,
@@ -257,6 +327,7 @@ function getKey() { return localStorage.getItem('pakshi_api_key') || ''; }
 
 window.addEventListener('load', () => {
   initNav('agent4a');
+  pullFromGist();
 
   const name   = localStorage.getItem('pakshi_profile_name') || '';
   const cv     = localStorage.getItem('pakshi_master_cv') || '';
@@ -399,6 +470,7 @@ Return ONLY valid JSON with no markdown fences or extra text:
     currentCV = parsed;
     renderCV(parsed);
     saveToHistory();
+    pushToGist();
 
   } catch(e) {
     showState('err');
@@ -509,6 +581,7 @@ function saveToHistory() {
     const entry = {
       id:          Date.now().toString(),
       date:        new Date().toISOString(),
+      updatedAt:   new Date().toISOString(),
       company:     localStorage.getItem('pakshi_current_company') || 'Unknown Company',
       role:        localStorage.getItem('pakshi_current_role')    || 'Unknown Role',
       score:       localStorage.getItem('pakshi_current_score')   || '',
@@ -601,7 +674,9 @@ Return ONLY valid JSON, no markdown:
         const history = JSON.parse(localStorage.getItem('pakshi_history') || '[]');
         if (history.length && !history[0].coverLetter) {
           history[0].coverLetter = body;
+          history[0].updatedAt = new Date().toISOString();
           localStorage.setItem('pakshi_history', JSON.stringify(history));
+          pushToGist();
         }
       } catch(e) {}
     }

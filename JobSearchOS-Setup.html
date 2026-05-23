@@ -110,6 +110,10 @@ textarea.target-area { height:72px; resize:vertical; line-height:1.6; }
       <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-…" />
     </div>
     <div class="field">
+      <label class="lbl" for="gistTokenInput">GitHub Sync Token <span style="font-size:9px;color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">(optional — enables cross-device sync)</span></label>
+      <input type="password" id="gistTokenInput" placeholder="ghp_… (GitHub personal access token, gist scope only)" />
+    </div>
+    <div class="field">
       <label class="lbl" for="nameInput">Your Name</label>
       <input type="text" id="nameInput" placeholder="e.g. Pakshiraj Ananthan" />
     </div>
@@ -151,6 +155,29 @@ textarea.target-area { height:72px; resize:vertical; line-height:1.6; }
 </div>
 
 <script>
+const GIST_DESC = 'job-search-os-sync';
+
+async function gistEnsureId(token) {
+  let id = localStorage.getItem('pakshi_gist_id');
+  if (id) return id;
+  const list = await fetch('https://api.github.com/gists?per_page=100', {
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+  });
+  if (!list.ok) throw new Error('GitHub API error ' + list.status);
+  const gists = await list.json();
+  const found = gists.find(g => g.description === GIST_DESC);
+  if (found) { localStorage.setItem('pakshi_gist_id', found.id); return found.id; }
+  const create = await fetch('https://api.github.com/gists', {
+    method: 'POST',
+    headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: GIST_DESC, public: false, files: { 'applications.json': { content: JSON.stringify({ v:1, apps:[], ts:0 }) } } })
+  });
+  if (!create.ok) throw new Error('Failed to create gist');
+  const gist = await create.json();
+  localStorage.setItem('pakshi_gist_id', gist.id);
+  return gist.id;
+}
+
 function initNav(activePage) {
   document.querySelectorAll('.nav-link').forEach(l => {
     if (l.dataset.page === activePage) l.classList.add('active');
@@ -167,6 +194,8 @@ function renderProfile() {
   const name = localStorage.getItem('pakshi_profile_name') || '';
   const target = localStorage.getItem('pakshi_profile_target') || '';
   const cv = localStorage.getItem('pakshi_master_cv') || '';
+  const syncToken = localStorage.getItem('pakshi_gist_token');
+  const gistId = localStorage.getItem('pakshi_gist_id');
   const el = document.getElementById('profileDisplay');
   if (!name && !cv) {
     el.innerHTML = `<div class="profile-empty"><div class="profile-empty-t">Your profile will appear here once saved.</div></div>`;
@@ -176,14 +205,18 @@ function renderProfile() {
   el.innerHTML = `
     <div class="profile-card">
       <div class="profile-name">${name || 'Your Name'}</div>
-      <div class="profile-badge">✓ Profile ready</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        <div class="profile-badge" style="margin-bottom:0">✓ Profile ready</div>
+        ${syncToken ? `<div class="profile-badge" style="margin-bottom:0;background:rgba(83,74,183,.08);border-color:rgba(83,74,183,.2);color:var(--accent)">${gistId ? '⟳ Sync active' : '⟳ Sync pending…'}</div>` : ''}
+      </div>
       ${target ? `<div class="profile-section"><div class="profile-lbl">Target roles</div><div class="profile-val">${target}</div></div>` : ''}
       ${cv ? `<div class="profile-section"><div class="profile-lbl">Master CV preview</div><div class="profile-cv-preview">${cvPreview}</div></div>` : ''}
     </div>`;
 }
 
-function saveProfile() {
+async function saveProfile() {
   const key = document.getElementById('apiKeyInput').value.trim();
+  const gistToken = document.getElementById('gistTokenInput').value.trim();
   const name = document.getElementById('nameInput').value.trim();
   const target = document.getElementById('targetInput').value.trim();
   const cv = document.getElementById('cvInput').value.trim();
@@ -191,6 +224,12 @@ function saveProfile() {
   if (name) localStorage.setItem('pakshi_profile_name', name);
   if (target) localStorage.setItem('pakshi_profile_target', target);
   if (cv) localStorage.setItem('pakshi_master_cv', cv);
+  if (gistToken) {
+    const prev = localStorage.getItem('pakshi_gist_token');
+    if (gistToken !== prev) localStorage.removeItem('pakshi_gist_id');
+    localStorage.setItem('pakshi_gist_token', gistToken);
+    gistEnsureId(gistToken).catch(e => console.warn('Gist init:', e.message));
+  }
   renderProfile();
   const s = document.getElementById('saveSuccess');
   s.style.display = 'block';
@@ -201,8 +240,9 @@ function clearAll() {
   if (!confirm('This will delete your master CV, profile, API key, and all history. Are you sure?')) return;
   ['pakshi_api_key','pakshi_profile_name','pakshi_profile_target','pakshi_master_cv',
    'pakshi_current_jd','pakshi_current_company','pakshi_current_role','pakshi_current_score',
-   'pakshi_current_cv_json','pakshi_history'].forEach(k => localStorage.removeItem(k));
+   'pakshi_current_cv_json','pakshi_history','pakshi_gist_token','pakshi_gist_id'].forEach(k => localStorage.removeItem(k));
   document.getElementById('apiKeyInput').value = '';
+  document.getElementById('gistTokenInput').value = '';
   document.getElementById('nameInput').value = '';
   document.getElementById('targetInput').value = '';
   document.getElementById('cvInput').value = '';
@@ -266,6 +306,8 @@ window.addEventListener('load', () => {
   initNav('setup');
   const key = localStorage.getItem('pakshi_api_key');
   if (key) document.getElementById('apiKeyInput').placeholder = 'Key saved ✓ (enter new to update)';
+  const gistToken = localStorage.getItem('pakshi_gist_token');
+  if (gistToken) document.getElementById('gistTokenInput').placeholder = 'Token saved ✓ (enter new to update)';
   const name = localStorage.getItem('pakshi_profile_name') || '';
   const target = localStorage.getItem('pakshi_profile_target') || '';
   const cv = localStorage.getItem('pakshi_master_cv') || '';
